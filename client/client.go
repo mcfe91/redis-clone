@@ -10,18 +10,18 @@ import (
 
 type Client struct {
 	addr string
-  conn net.Conn
+	conn net.Conn
 }
 
 func New(addr string) (*Client, error) {
-  conn, err := net.Dial("tcp", addr)
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
 		addr: addr,
-    conn: conn,
+		conn: conn,
 	}, nil
 }
 
@@ -45,10 +45,14 @@ func (c *Client) Get(ctx context.Context, key string) (string, error) {
 		resp.StringValue(key),
 	})
 	_, err := c.conn.Write(buf.Bytes())
-  if err != nil {
-    return "", err
-  }
-  b := make([]byte, 1024)
-  n, err := c.conn.Read(b)
+	if err != nil {
+		return "", err
+	}
+	b := make([]byte, 1024)
+	n, err := c.conn.Read(b)
 	return string(b[:n]), err
+}
+
+func (c *Client) Close() error {
+	return c.conn.Close()
 }

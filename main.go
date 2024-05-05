@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
+	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"net"
-	"time"
-
-	"github.com/mcfe19/redis-clone/client"
 )
 
 const defaultListenAddr = ":5001"
@@ -18,7 +15,7 @@ type Config struct {
 }
 
 type Message struct {
-	cmd Command
+	cmd  Command
 	peer *Peer
 }
 
@@ -55,7 +52,7 @@ func (s *Server) Start() error {
 
 	go s.loop()
 
-	slog.Info("server running", "listenAddr", s.ListenAddress)
+	slog.Info("redis-clone server running", "listenAddr", s.ListenAddress)
 
 	return s.acceptLoop()
 }
@@ -88,6 +85,7 @@ func (s *Server) loop() {
 		case <-s.quitCh:
 			return
 		case peer := <-s.addPeerCh:
+			slog.Info("new peer connected", "remoteAddr", peer.conn.RemoteAddr())
 			s.peers[peer] = true
 		}
 	}
@@ -113,25 +111,10 @@ func (s *Server) handleConn(conn net.Conn) {
 }
 
 func main() {
-	server := NewServer(Config{})
-	go func() {
-		log.Fatal(server.Start())
-	}()
-	time.Sleep(time.Second)
-
-	client, err := client.New("localhost:5001")
-  if err != nil {
-    log.Fatal(err)
-  }
-	for i := 0; i < 10; i++ {
-    fmt.Println("set this: ", fmt.Sprintf("bar %d", i))
-		if err := client.Set(context.Background(), fmt.Sprintf("foo %d", i), fmt.Sprintf("bar %d", i)); err != nil {
-			log.Fatal(err)
-		}
-		val, err := client.Get(context.Background(), fmt.Sprintf("foo %d", i))
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("got this back: ", val)
-	}
+	listenAddr := flag.String("listenAddr", defaultListenAddr, "listen addr of the redis-clone server")
+	flag.Parse()
+	server := NewServer(Config{
+		ListenAddress: *listenAddr,
+	})
+	log.Fatal(server.Start())
 }
