@@ -12,24 +12,27 @@ import (
 type Peer struct {
 	conn  net.Conn
 	msgCh chan Message
+	delCh chan *Peer
 }
 
 func (p *Peer) Send(msg []byte) (int, error) {
 	return p.conn.Write(msg)
 }
 
-func NewPeer(conn net.Conn, msgCh chan Message) *Peer {
+func NewPeer(conn net.Conn, msgCh chan Message, delCh chan *Peer) *Peer {
 	return &Peer{
 		conn:  conn,
 		msgCh: msgCh,
+		delCh: delCh,
 	}
 }
 
 func (p *Peer) readLoop() error {
-    rd := resp.NewReader(p.conn)
-    for {
+	rd := resp.NewReader(p.conn)
+	for {
 		v, _, err := rd.ReadValue()
 		if err == io.EOF {
+			p.delCh <- p
 			break
 		}
 		if err != nil {
@@ -46,10 +49,10 @@ func (p *Peer) readLoop() error {
 					cmd := GetCommand{
 						key: v.Array()[1].Bytes(),
 					}
-                    p.msgCh <- Message{
-                        cmd: cmd,
-                        peer: p,
-                    }
+					p.msgCh <- Message{
+						cmd:  cmd,
+						peer: p,
+					}
 				case CommandSET:
 					if len(v.Array()) != 3 {
 						return fmt.Errorf("invalid number of variables for set command")
@@ -58,13 +61,13 @@ func (p *Peer) readLoop() error {
 						key: v.Array()[1].Bytes(),
 						val: v.Array()[2].Bytes(),
 					}
-                    p.msgCh <- Message{
-                        cmd: cmd,
-                        peer: p,
-                    }
+					p.msgCh <- Message{
+						cmd:  cmd,
+						peer: p,
+					}
 				}
 			}
 		}
 	}
-    return nil
+	return nil
 }
