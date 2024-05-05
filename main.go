@@ -62,7 +62,13 @@ func (s *Server) Start() error {
 func (s *Server) handleMessage(msg Message) error {
 	switch v := msg.cmd.(type) {
 	case SetCommand:
-		return s.kv.Set(v.key, v.val)
+		if err := s.kv.Set(v.key, v.val); err != nil {
+			return err
+		}
+		_, err := msg.peer.Send([]byte("OK\r\n"))
+		if err != nil {
+			return fmt.Errorf("peer sending error: %s", err)
+		}
 	case GetCommand:
 		val, ok := s.kv.Get(v.key)
 		if !ok {
@@ -70,8 +76,18 @@ func (s *Server) handleMessage(msg Message) error {
 		}
 		_, err := msg.peer.Send(val)
 		if err != nil {
-			slog.Error("peer sending error", "err", err)
+			return fmt.Errorf("peer sending error: %s", err)
 		}
+	case HelloCommand:
+		spec := map[string]string{
+			"server": "redis",
+			"role":   "master",
+		}
+		_, err := msg.peer.Send([]byte(respWriteMap(spec)))
+		if err != nil {
+			return fmt.Errorf("peer sending error: %s", err)
+		}
+		fmt.Println("this is the hello command from the client")
 	}
 
 	return nil

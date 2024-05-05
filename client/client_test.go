@@ -4,38 +4,26 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 	"testing"
+	"time"
 )
 
-func TestNewClients(t *testing.T) {
-	nClients := 10
-	wg := sync.WaitGroup{}
-	wg.Add(nClients)
-	for i := 0; i < nClients; i++ {
-		go func(it int) {
-			client, err := New("localhost:5001")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer client.Close()
-
-			key := fmt.Sprintf("client_foo_%d", it)
-			value := fmt.Sprintf("client_bar_%d", it)
-			if err := client.Set(context.TODO(), key, value); err != nil {
-				log.Fatal(err)
-			}
-
-			val, err := client.Get(context.TODO(), key)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("client %d got this val back: %s\n", it, val)
-
-			wg.Done()
-		}(i)
+func TestNewClient1(t *testing.T) {
+	client, err := New("localhost:5001") // TODO: mock client server
+	if err != nil {
+		t.Fatal(err)
 	}
-	wg.Wait()
+	defer client.Close()
+
+	if err := client.Set(context.TODO(), "foo", "1"); err != nil {
+		log.Fatal(err)
+	}
+	time.Sleep(time.Second)
+	val, err := client.Get(context.TODO(), "foo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("GET =>", val)
 }
 
 func TestNewClient(t *testing.T) {

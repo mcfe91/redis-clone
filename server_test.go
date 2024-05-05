@@ -11,6 +11,15 @@ import (
 	"github.com/mcfe19/redis-clone/client"
 )
 
+func TestFooBar(t *testing.T) {
+	in := map[string]string{
+		"server":  "redis",
+		"version": "6.0",
+	}
+	out := respWriteMap(in)
+	fmt.Println(string(out))
+}
+
 func TestServerWithMultiClients(t *testing.T) {
 	server := NewServer(Config{})
 	go func() {

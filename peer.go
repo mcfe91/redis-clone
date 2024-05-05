@@ -41,6 +41,7 @@ func (p *Peer) readLoop() error {
 
 		if v.Type() == resp.Array {
 			for _, value := range v.Array() {
+				fmt.Println("this command is what we got =>", value)
 				switch value.String() {
 				case CommandGET:
 					if len(v.Array()) != 2 {
@@ -65,6 +66,16 @@ func (p *Peer) readLoop() error {
 						cmd:  cmd,
 						peer: p,
 					}
+				case CommandHELLO:
+					cmd := HelloCommand{
+						value: v.Array()[1].String(),
+					}
+					p.msgCh <- Message{
+						cmd:  cmd,
+						peer: p,
+					}
+				default:
+					fmt.Println("got unknown command", v.Array())
 				}
 			}
 		}
