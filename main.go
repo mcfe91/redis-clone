@@ -18,7 +18,7 @@ type Config struct {
 }
 
 type Message struct {
-	data []byte
+	cmd Command
 	peer *Peer
 }
 
@@ -61,11 +61,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) handleMessage(msg Message) error {
-	cmd, err := parseCommand(string(msg.data))
-	if err != nil {
-		return err
-	}
-	switch v := cmd.(type) {
+	switch v := msg.cmd.(type) {
 	case SetCommand:
 		return s.kv.Set(v.key, v.val)
 	case GetCommand:
@@ -123,12 +119,15 @@ func main() {
 	}()
 	time.Sleep(time.Second)
 
-	client := client.New("localhost:5001")
+	client, err := client.New("localhost:5001")
+  if err != nil {
+    log.Fatal(err)
+  }
 	for i := 0; i < 10; i++ {
+    fmt.Println("set this: ", fmt.Sprintf("bar %d", i))
 		if err := client.Set(context.Background(), fmt.Sprintf("foo %d", i), fmt.Sprintf("bar %d", i)); err != nil {
 			log.Fatal(err)
 		}
-		time.Sleep(time.Second) // TODO: race condition, b/c conn are not re-used currently. Fix!
 		val, err := client.Get(context.Background(), fmt.Sprintf("foo %d", i))
 		if err != nil {
 			log.Fatal(err)
