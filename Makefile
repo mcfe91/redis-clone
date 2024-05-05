@@ -1,7 +1,7 @@
 run: build
-	@./bin/redis-clone
+  @./bin/redis-clone
 
 build:
-	@go build -o bin/redis-clone .
+  @go build -o bin/redis-clone .
 
 
